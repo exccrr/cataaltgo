@@ -34,6 +34,11 @@ func main() {
 	operator := data[1]
 	b := data[2]
 
+	if len(a) > 10 {
+		fmt.Println("Ошибка: строка не должна содержать более 10 символов.")
+		return
+	}
+
 	var result string
 
 	switch operator {
