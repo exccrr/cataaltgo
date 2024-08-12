@@ -13,26 +13,15 @@ func main() {
 
 	input, _ := reader.ReadString('\n')
 	input = strings.TrimSpace(input)
-	data := strings.Fields(input)
-
-	if len(data) != 3 {
-		fmt.Println("Некорректный формат ввода. Ожидается 3 части: строка, оператор, строка/число.")
-		return
-	}
-
-	if _, err := strconv.Atoi(data[0]); err == nil {
-		fmt.Println("Первое значение должно быть строкой в кавычках.")
-		return
-	}
-
-	if !strings.HasPrefix(data[0], "\"") || !strings.HasSuffix(data[0], "\"") {
-		fmt.Println("Выделите двойными кавычками строковые значения.")
+	data, err := parseInput(input)
+	if err != nil {
+		fmt.Println(err)
 		return
 	}
 
 	a := strings.Trim(data[0], "\"")
 	operator := data[1]
-	b := data[2]
+	b := strings.Trim(data[2], "\"")
 
 	if len(a) > 10 {
 		fmt.Println("Ошибка: строка не должна содержать более 10 символов.")
@@ -43,18 +32,8 @@ func main() {
 
 	switch operator {
 	case "+":
-		if !strings.HasPrefix(b, "\"") || !strings.HasSuffix(b, "\"") {
-			fmt.Println("Выделите двойными кавычками строковые значения.")
-			return
-		}
-		b = strings.Trim(b, "\"")
 		result = sumStrings(a, b)
 	case "-":
-		if !strings.HasPrefix(b, "\"") || !strings.HasSuffix(b, "\"") {
-			fmt.Println("Выделите двойными кавычками строковые значения.")
-			return
-		}
-		b = strings.Trim(b, "\"")
 		result = subtractStrings(a, b)
 	case "*":
 		num, err := strconv.Atoi(b)
@@ -67,6 +46,10 @@ func main() {
 		num, err := strconv.Atoi(b)
 		if err != nil || num < 1 || num > 10 {
 			fmt.Println("Введите число от 1 до 10.")
+			return
+		}
+		if num > len(a) {
+			fmt.Println("Ошибка: длина строки меньше делителя.")
 			return
 		}
 		result = divideStringByNumber(a, num)
@@ -83,6 +66,41 @@ func main() {
 	}
 }
 
+func parseInput(input string) ([]string, error) {
+	parts := make([]string, 0, 3)
+
+	start := strings.Index(input, "\"")
+	end := strings.Index(input[start+1:], "\"") + start + 1
+	if start == -1 || end == -1 || end <= start {
+		return nil, fmt.Errorf("Некорректный формат ввода. Ожидается строка в кавычках.")
+	}
+	parts = append(parts, input[start:end+1])
+
+	rest := strings.TrimSpace(input[end+1:])
+	if len(rest) < 2 {
+		return nil, fmt.Errorf("Некорректный формат ввода. Ожидается оператор.")
+	}
+	operator := string(rest[0])
+	if operator != "+" && operator != "-" && operator != "*" && operator != "/" {
+		return nil, fmt.Errorf("Некорректный ввод операции.")
+	}
+	parts = append(parts, operator)
+	rest = strings.TrimSpace(rest[1:])
+
+	if strings.HasPrefix(rest, "\"") {
+		start = 0
+		end = strings.Index(rest[1:], "\"") + 1
+		if end <= start {
+			return nil, fmt.Errorf("Некорректный формат ввода. Ожидается строка в кавычках.")
+		}
+		parts = append(parts, rest[start:end+1])
+	} else {
+		parts = append(parts, rest)
+	}
+
+	return parts, nil
+}
+
 func sumStrings(a, b string) string {
 	return a + b
 }
@@ -97,6 +115,7 @@ func divideStringByNumber(a string, b int) string {
 	}
 	return a[:len(a)/b]
 }
+
 func multiplyStringByNumber(a string, b int) string {
 	result := ""
 	for i := 0; i < b; i++ {
